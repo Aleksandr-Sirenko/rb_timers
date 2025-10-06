@@ -1,0 +1,195 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекер Респауна Рейд Боссов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .boss-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .boss-item {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .boss-name {
+            font-weight: bold;
+        }
+        .boss-status {
+            margin-left: 10px;
+            color: #888;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .kill-btn {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        .kill-btn:hover {
+            background-color: #cc0000;
+        }
+        .reset-btn {
+            background-color: #4d79ff;
+            color: white;
+        }
+        .reset-btn:hover {
+            background-color: #0040ff;
+        }
+        .available {
+            color: green;
+        }
+        .unavailable {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Трекер Респауна Рейд Боссов</h1>
+    <div class="boss-list" id="bossList"></div>
+
+    <script>
+        const bosses = [
+            "[Lv.85] Пора Уика (Неодоступен)",
+            "[Lv.85] Посланик Антарас КомаБор (Неодоступен)",
+            "[Lv.85] Посланик Валакас Поткин (Неодоступен)",
+            "[Lv.85] Посланик Линдвиор Ниома (Неодоступен)",
+            "[Lv.85] Миним (Неодоступен)",
+            "[Lv.85] Король Скорпионов Бог (Неодоступен)",
+            "[Lv.85] Изавель (Неодоступен)",
+            "[Lv.85] Палаче (Неодоступен)",
+            "[Lv.85] Семос (Неодоступен)",
+            "[Lv.85] Мелиса (Неодоступен)",
+            "[Lv.85] Мари Рия (Неодоступен)",
+            "[Lv.85] Синтия Зеро (Неодоступен)",
+            "[Lv.85] Орг Неват (Неодоступен)",
+            "[Lv.85] Орк Герба (Неодоступен)"
+        ];
+
+        async function getTimers() {
+            try {
+                const response = await fetch('/api/timers');
+                if (!response.ok) throw new Error('Failed to fetch timers');
+                return await response.json();
+            } catch (err) {
+                console.error(err);
+                return {};
+            }
+        }
+
+        async function killBoss(bossName) {
+            try {
+                const response = await fetch(`/api/bosses/${encodeURIComponent(bossName)}/kill`, { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to kill boss');
+                renderList();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function resetBoss(bossName) {
+            try {
+                const response = await fetch(`/api/bosses/${encodeURIComponent(bossName)}/reset`, { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to reset boss');
+                renderList();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function formatTimeLeft(ms) {
+            if (ms <= 0) return 'Доступен';
+            const hours = Math.floor(ms / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            return `${hours}ч ${minutes}м ${seconds}с`;
+        }
+
+        async function getStatus(bossName, timers) {
+            const respawnTime = timers[bossName];
+            if (!respawnTime) {
+                return { text: '(Доступен)', class: 'available' };
+            }
+            const timeLeft = respawnTime - Date.now();
+            if (timeLeft <= 0) {
+                // Note: Server doesn't auto-delete, but client treats as available
+                return { text: '(Доступен)', class: 'available' };
+            }
+            return { text: `(${formatTimeLeft(timeLeft)})`, class: 'unavailable' };
+        }
+
+        async function renderList() {
+            const list = document.getElementById('bossList');
+            list.innerHTML = '';
+            const timers = await getTimers();
+            for (const boss of bosses) {
+                const item = document.createElement('div');
+                item.classList.add('boss-item');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.classList.add('boss-name');
+                nameSpan.innerText = boss;
+
+                const statusSpan = document.createElement('span');
+                statusSpan.classList.add('boss-status');
+                const status = await getStatus(boss, timers);
+                statusSpan.innerText = status.text;
+                statusSpan.classList.add(status.class);
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.classList.add('buttons');
+
+                const killBtn = document.createElement('button');
+                killBtn.classList.add('kill-btn');
+                killBtn.innerText = 'Убить';
+                killBtn.onclick = () => killBoss(boss);
+
+                const resetBtn = document.createElement('button');
+                resetBtn.classList.add('reset-btn');
+                resetBtn.innerText = 'Сброс';
+                resetBtn.onclick = () => resetBoss(boss);
+
+                buttonsDiv.appendChild(killBtn);
+                buttonsDiv.appendChild(resetBtn);
+
+                item.appendChild(nameSpan);
+                item.appendChild(statusSpan);
+                item.appendChild(buttonsDiv);
+
+                list.appendChild(item);
+            }
+        }
+
+        // Обновляем каждую секунду
+        setInterval(renderList, 1000);
+
+        // Начальный рендер
+        renderList();
+    </script>
+</body>
+</html>
