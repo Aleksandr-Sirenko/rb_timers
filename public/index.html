@@ -1,4 +1,3 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,21 +7,22 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
             margin: 0;
             padding: 20px;
         }
         h1 {
             text-align: center;
+            color: #ffffff;
         }
         .boss-list {
             max-width: 800px;
             margin: 0 auto;
         }
         .boss-item {
-            background-color: #fff;
-            border: 1px solid #ddd;
+            background-color: #2c2c2c;
+            border: 1px solid #444;
             border-radius: 5px;
             padding: 15px;
             margin-bottom: 10px;
@@ -35,7 +35,6 @@
         }
         .boss-status {
             margin-left: 10px;
-            color: #888;
         }
         .buttons {
             display: flex;
@@ -62,10 +61,10 @@
             background-color: #0040ff;
         }
         .available {
-            color: green;
+            color: #00cc00;
         }
         .unavailable {
-            color: red;
+            color: #ff4444;
         }
     </style>
 </head>
@@ -75,20 +74,20 @@
 
     <script>
         const bosses = [
-            "[Lv.85] Пора Уика (Неодоступен)",
-            "[Lv.85] Посланик Антарас КомаБор (Неодоступен)",
-            "[Lv.85] Посланик Валакас Поткин (Неодоступен)",
-            "[Lv.85] Посланик Линдвиор Ниома (Неодоступен)",
-            "[Lv.85] Миним (Неодоступен)",
-            "[Lv.85] Король Скорпионов Бог (Неодоступен)",
-            "[Lv.85] Изавель (Неодоступен)",
-            "[Lv.85] Палаче (Неодоступен)",
-            "[Lv.85] Семос (Неодоступен)",
-            "[Lv.85] Мелиса (Неодоступен)",
-            "[Lv.85] Мари Рия (Неодоступен)",
-            "[Lv.85] Синтия Зеро (Неодоступен)",
-            "[Lv.85] Орг Неват (Неодоступен)",
-            "[Lv.85] Орк Герба (Неодоступен)"
+            "[Lv.85] Пора Уика",
+            "[Lv.85] Посланик Антарас КомаБор",
+            "[Lv.85] Посланик Валакас Поткин",
+            "[Lv.85] Посланик Линдвиор Ниома",
+            "[Lv.85] Миним",
+            "[Lv.85] Король Скорпионов Бог",
+            "[Lv.85] Изавель",
+            "[Lv.85] Палаче",
+            "[Lv.85] Семос",
+            "[Lv.85] Мелиса",
+            "[Lv.85] Мари Рия",
+            "[Lv.85] Синтия Зеро",
+            "[Lv.85] Орг Неват",
+            "[Lv.85] Орк Герба"
         ];
 
         async function getTimers() {
@@ -131,64 +130,87 @@
         }
 
         async function getStatus(bossName, timers) {
-            const respawnTime = timers[bossName];
-            if (!respawnTime) {
+            const bossData = timers[bossName];
+            if (!bossData || !bossData.killTime) {
                 return { text: '(Доступен)', class: 'available' };
             }
-            const timeLeft = respawnTime - Date.now();
-            if (timeLeft <= 0) {
-                // Note: Server doesn't auto-delete, but client treats as available
+            const now = Date.now();
+            const minTimeLeft = bossData.minRespawn - now;
+            const maxTimeLeft = bossData.maxRespawn - now;
+            if (maxTimeLeft <= 0) {
                 return { text: '(Доступен)', class: 'available' };
             }
-            return { text: `(${formatTimeLeft(timeLeft)})`, class: 'unavailable' };
+            return {
+                text: `(Мин: ${formatTimeLeft(minTimeLeft)}, Макс: ${formatTimeLeft(maxTimeLeft)})`,
+                class: 'unavailable'
+            };
+        }
+
+        function createBossElement(boss, status) {
+            const item = document.createElement('div');
+            item.classList.add('boss-item');
+
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('boss-name');
+            nameSpan.innerText = boss;
+
+            const statusSpan = document.createElement('span');
+            statusSpan.classList.add('boss-status');
+            statusSpan.innerText = status.text;
+            statusSpan.classList.add(status.class);
+
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.classList.add('buttons');
+
+            const killBtn = document.createElement('button');
+            killBtn.classList.add('kill-btn');
+            killBtn.innerText = 'Убить';
+            killBtn.onclick = () => killBoss(boss);
+
+            const resetBtn = document.createElement('button');
+            resetBtn.classList.add('reset-btn');
+            resetBtn.innerText = 'Сброс';
+            resetBtn.onclick = () => resetBoss(boss);
+
+            buttonsDiv.appendChild(killBtn);
+            buttonsDiv.appendChild(resetBtn);
+
+            item.appendChild(nameSpan);
+            item.appendChild(statusSpan);
+            item.appendChild(buttonsDiv);
+
+            return item;
         }
 
         async function renderList() {
             const list = document.getElementById('bossList');
-            list.innerHTML = '';
             const timers = await getTimers();
+            list.innerHTML = '';
             for (const boss of bosses) {
-                const item = document.createElement('div');
-                item.classList.add('boss-item');
-
-                const nameSpan = document.createElement('span');
-                nameSpan.classList.add('boss-name');
-                nameSpan.innerText = boss;
-
-                const statusSpan = document.createElement('span');
-                statusSpan.classList.add('boss-status');
                 const status = await getStatus(boss, timers);
-                statusSpan.innerText = status.text;
-                statusSpan.classList.add(status.class);
-
-                const buttonsDiv = document.createElement('div');
-                buttonsDiv.classList.add('buttons');
-
-                const killBtn = document.createElement('button');
-                killBtn.classList.add('kill-btn');
-                killBtn.innerText = 'Убить';
-                killBtn.onclick = () => killBoss(boss);
-
-                const resetBtn = document.createElement('button');
-                resetBtn.classList.add('reset-btn');
-                resetBtn.innerText = 'Сброс';
-                resetBtn.onclick = () => resetBoss(boss);
-
-                buttonsDiv.appendChild(killBtn);
-                buttonsDiv.appendChild(resetBtn);
-
-                item.appendChild(nameSpan);
-                item.appendChild(statusSpan);
-                item.appendChild(buttonsDiv);
-
-                list.appendChild(item);
+                const bossElement = createBossElement(boss, status);
+                list.appendChild(bossElement);
             }
         }
 
-        // Обновляем каждую секунду
-        setInterval(renderList, 1000);
+        async function updateTimers() {
+            const timers = await getTimers();
+            const list = document.getElementById('bossList');
+            for (const boss of bosses) {
+                const items = list.getElementsByClassName('boss-item');
+                for (let item of items) {
+                    const name = item.querySelector('.boss-name').innerText;
+                    if (name === boss) {
+                        const status = await getStatus(boss, timers);
+                        item.querySelector('.boss-status').innerText = status.text;
+                        item.querySelector('.boss-status').className = 'boss-status ' + status.class;
+                        break;
+                    }
+                }
+            }
+        }
 
-        // Начальный рендер
+        setInterval(updateTimers, 1000);
         renderList();
     </script>
 </body>

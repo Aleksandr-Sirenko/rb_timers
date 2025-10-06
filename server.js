@@ -2,21 +2,14 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const port = process.env.PORT || 3000; // Используем порт из Render или 3000 по умолчанию
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const TIMERS_FILE = path.join(__dirname, 'timers.json');
-const RESPAWN_HOURS = 9;
-const VARIANCE_HOURS = 1;
-
-function getRandomRespawnTime() {
-    const minHours = RESPAWN_HOURS - VARIANCE_HOURS;
-    const maxHours = RESPAWN_HOURS + VARIANCE_HOURS;
-    const randomHours = Math.random() * (maxHours - minHours) + minHours;
-    return Math.floor(randomHours * 60 * 60 * 1000); // в миллисекундах, целое число
-}
+const MIN_RESPAWN_HOURS = 9;
+const MAX_RESPAWN_HOURS = 11;
 
 function loadTimers() {
     try {
@@ -38,10 +31,14 @@ app.get('/api/timers', (req, res) => {
 app.post('/api/bosses/:boss/kill', (req, res) => {
     const bossName = decodeURIComponent(req.params.boss);
     const timers = loadTimers();
-    const respawnMs = getRandomRespawnTime();
-    timers[bossName] = Date.now() + respawnMs;
+    const killTime = Date.now();
+    timers[bossName] = {
+        killTime: killTime,
+        minRespawn: killTime + (MIN_RESPAWN_HOURS * 60 * 60 * 1000),
+        maxRespawn: killTime + (MAX_RESPAWN_HOURS * 60 * 60 * 1000)
+    };
     saveTimers(timers);
-    res.json({ success: true, respawnTime: timers[bossName] });
+    res.json({ success: true, minRespawn: timers[bossName].minRespawn, maxRespawn: timers[bossName].maxRespawn });
 });
 
 app.post('/api/bosses/:boss/reset', (req, res) => {
