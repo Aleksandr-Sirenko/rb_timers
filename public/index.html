@@ -204,8 +204,14 @@
         async function renderList() {
             const list = document.getElementById('bossList');
             const timers = await getTimers();
+            // Сортировка боссов по minRespawn
+            const sortedBosses = [...bosses].sort((a, b) => {
+                const dataA = timers[a] || { minRespawn: Infinity };
+                const dataB = timers[b] || { minRespawn: Infinity };
+                return (dataA.minRespawn || Infinity) - (dataB.minRespawn || Infinity);
+            });
             list.innerHTML = '';
-            for (const boss of bosses) {
+            for (const boss of sortedBosses) {
                 const status = await getStatus(boss, timers);
                 const bossElement = createBossElement(boss, status);
                 list.appendChild(bossElement);
