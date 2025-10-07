@@ -37,6 +37,7 @@
         .boss-status {
             text-align: right;
             margin-left: 10px;
+            margin-right: 10px;
             white-space: nowrap;
         }
         .status-line {
@@ -103,7 +104,9 @@
             try {
                 const response = await fetch('/api/timers');
                 if (!response.ok) throw new Error('Failed to fetch timers');
-                return await response.json();
+                const timers = await response.json();
+                console.log('Fetched timers:', timers); // Отладка
+                return timers;
             } catch (err) {
                 console.error(err);
                 return {};
@@ -144,8 +147,10 @@
                 return { text: '(Доступен)', class: 'available' };
             }
             const now = Date.now();
+            console.log(`Boss: ${bossName}, now: ${now}, minRespawn: ${bossData.minRespawn}, maxRespawn: ${bossData.maxRespawn}`); // Отладка
             const minTimeLeft = bossData.minRespawn - now;
             const maxTimeLeft = bossData.maxRespawn - now;
+            console.log(`minTimeLeft: ${minTimeLeft}, maxTimeLeft: ${maxTimeLeft}`); // Отладка
             if (maxTimeLeft <= 0) {
                 return { text: '(Доступен)', class: 'available' };
             } else if (minTimeLeft <= 0) {
