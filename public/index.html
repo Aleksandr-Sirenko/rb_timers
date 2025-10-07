@@ -32,9 +32,15 @@
         }
         .boss-name {
             font-weight: bold;
+            flex-grow: 1;
         }
         .boss-status {
+            text-align: right;
             margin-left: 10px;
+            white-space: nowrap;
+        }
+        .status-line {
+            display: block;
         }
         .buttons {
             display: flex;
@@ -66,9 +72,13 @@
         .unavailable {
             color: #ff4444;
         }
+        .respawning {
+            color: #ffff00; /* Желтый цвет для "Идет респ" */
+        }
     </style>
 </head>
 <body>
+    <h1>Трекер Респауна 86 РБ</h1>
     <div class="boss-list" id="bossList"></div>
 
     <script>
@@ -121,7 +131,7 @@
         }
 
         function formatTimeLeft(ms) {
-            if (ms <= 0) return 'Доступен';
+            if (ms <= 0) return '0ч 0м 0с';
             const hours = Math.floor(ms / (1000 * 60 * 60));
             const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((ms % (1000 * 60)) / 1000);
@@ -138,6 +148,11 @@
             const maxTimeLeft = bossData.maxRespawn - now;
             if (maxTimeLeft <= 0) {
                 return { text: '(Доступен)', class: 'available' };
+            } else if (minTimeLeft <= 0) {
+                return {
+                    text: `(Идет респ до максимального респа - ${formatTimeLeft(maxTimeLeft)})`,
+                    class: 'respawning'
+                };
             }
             return {
                 text: `(Мин: ${formatTimeLeft(minTimeLeft)}, Макс: ${formatTimeLeft(maxTimeLeft)})`,
@@ -155,7 +170,7 @@
 
             const statusSpan = document.createElement('span');
             statusSpan.classList.add('boss-status');
-            statusSpan.innerText = status.text;
+            statusSpan.innerHTML = status.text.split('\n').map(line => `<span class="status-line">${line}</span>`).join('');
             statusSpan.classList.add(status.class);
 
             const buttonsDiv = document.createElement('div');
@@ -201,7 +216,7 @@
                     const name = item.querySelector('.boss-name').innerText;
                     if (name === boss) {
                         const status = await getStatus(boss, timers);
-                        item.querySelector('.boss-status').innerText = status.text;
+                        item.querySelector('.boss-status').innerHTML = status.text.split('\n').map(line => `<span class="status-line">${line}</span>`).join('');
                         item.querySelector('.boss-status').className = 'boss-status ' + status.class;
                         break;
                     }
